@@ -3,11 +3,11 @@
 
 ## Resumen
 Este repositorio contiene el código fuente modificado de xv6, un sistema operativo académico basado en Unix. El objetivo de este proyecto es explorar, analizar y proponer mejoras en dos componentes fundamentales del sistema:
-1. El algoritmo de planificación de la CPU (scheduler)[cite: 1].
-2. El algoritmo de asignación y gestión de memoria[cite: 1].
+1. El algoritmo de planificación de la CPU (scheduler).
+2. El algoritmo de asignación y gestión de memoria.
 
 ## Entorno de Desarrollo y Virtualización
-Para garantizar que el sistema operativo se compila y ejecuta sin errores en cualquier máquina, el entorno de desarrollo se ha estandarizado utilizando **Docker**[cite: 1].
+Para garantizar que el sistema operativo se compila y ejecuta sin errores en cualquier máquina, el entorno de desarrollo se ha estandarizado utilizando **Docker**.
 
 **Características del Entorno:**
 * **Sistema Host:** Windows (o cualquier OS compatible con Docker).
@@ -21,7 +21,7 @@ Para garantizar que el sistema operativo se compila y ejecuta sin errores en cua
 
 ## Pasos de Configuración Inicial aplicados
 
-A continuación, se detallan las instrucciones para compilar y ejecutar la versión original (y posteriormente la modificada) de xv6[cite: 1]:
+A continuación, se detallan las instrucciones para compilar y ejecutar la versión original (y posteriormente la modificada) de xv6:
 
 ### 1. Clonar el repositorio
 Se obtuvo el código fuente base mediante:
@@ -66,4 +66,4 @@ Para salir del entorno interactivo de xv6 de forma segura, presionar la combinac
 `Ctrl + A`, soltar y luego presionar `X`.
 
 ---
-*Este documento se irá actualizando a medida que se implementen y prueben las modificaciones en los algoritmos de planificación y memoria[cite: 1].*
+*Este documento se irá actualizando a medida que se implementen y prueben las modificaciones en los algoritmos de planificación y memoria.*
