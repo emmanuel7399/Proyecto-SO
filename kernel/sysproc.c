@@ -39,28 +39,19 @@ sys_wait(void)
 uint64
 sys_sbrk(void)
 {
-  uint64 addr;
-  int t;
+  int addr;
   int n;
+  struct proc *p = myproc();
 
   argint(0, &n);
-  argint(1, &t);
-  addr = myproc()->sz;
 
-  if (t == SBRK_EAGER || n < 0) {
-    if (growproc(n) < 0) {
-      return -1;
-    }
-  } else {
-    // Lazily allocate memory for this process: increase its memory
-    // size but don't allocate memory. If the processes uses the
-    // memory, vmfault() will allocate it.
-    if (addr + n < addr)
-      return -1;
-    if (addr + n > TRAPFRAME)
-      return -1;
-    myproc()->sz += n;
-  }
+  addr = p->sz;
+
+  // MODIFICACION: Asignacion perezosa (Lazy Allocation)
+  // Ya no llamamos a growproc(n). En su lugar, simplemente
+  // incrementamos el tamaño virtual del proceso.
+  p->sz = p->sz + n;
+
   return addr;
 }
 
@@ -106,4 +97,28 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// MODIFICACION: Implementacion de settickets
+// Toma un argumento entero (n) del espacio de usuario y se lo asigna
+// a la variable tickets del proceso actual.
+uint64
+sys_settickets(void)
+{
+  int n;
+  struct proc *p = myproc();
+
+  // En xv6-riscv, argint es de tipo void y lee el registro directamente
+  argint(0, &n);
+
+  // Un proceso siempre debe tener al menos 1 tiquete para evitar inanicion
+  if(n < 1)
+    return -1;
+
+  // Adquirimos el candado para modificar el estado del proceso de forma segura
+  acquire(&p->lock);
+  p->tickets = n;
+  release(&p->lock);
+
+  return 0; // Exito
 }

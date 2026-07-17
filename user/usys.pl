@@ -43,3 +43,5 @@ entry("sbrk");
 entry("pause");
 entry("uptime");
 entry("sync");
+# MODIFICACION: Entrada de ensamblador para la syscall
+entry("settickets");

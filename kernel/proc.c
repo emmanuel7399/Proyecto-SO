@@ -125,6 +125,9 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  // MODIFICACION: Todo proceso inicia con 1 tiquete por defecto
+  p->tickets = 1;
+
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
     freeproc(p);
@@ -414,6 +417,15 @@ kwait(uint64 addr)
   }
 }
 
+// MODIFICACION: Generador de numeros pseudoaleatorios (LCG)
+// Necesario para realizar el sorteo en el planificador por loteria.
+static unsigned long randstate = 1;
+int random_tickets(int max) {
+  if (max <= 0) return 0;
+  randstate = randstate * 1664525 + 1013904223;
+  return (randstate >> 16) % max;
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -421,6 +433,8 @@ kwait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+// Per-CPU process scheduler.
+// Modificado para utilizar Planificacion por Loteria
 void
 scheduler(void)
 {
@@ -429,32 +443,51 @@ scheduler(void)
 
   c->proc = 0;
   for (;;) {
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
     intr_on();
     intr_off();
 
-    int found = 0;
+    // MODIFICACION: Paso 1 - Contar el total de tiquetes en juego
+    int total_tickets = 0;
     for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if (p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+        total_tickets += p->tickets;
       }
       release(&p->lock);
     }
+
+    int found = 0;
+
+    // Si hay procesos listos para ejecutarse, realizamos el sorteo
+    if (total_tickets > 0) {
+      // MODIFICACION: Paso 2 - Sacar el tiquete ganador (numero aleatorio)
+      int winning_ticket = random_tickets(total_tickets);
+      int current_ticket_count = 0;
+
+      // MODIFICACION: Paso 3 - Buscar al proceso ganador
+      for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if (p->state == RUNNABLE) {
+          current_ticket_count += p->tickets;
+
+          // Si la suma acumulada supera el numero ganador, este es el proceso
+          if (current_ticket_count > winning_ticket) {
+            p->state = RUNNING;
+            c->proc = p;
+            swtch(&c->context, &p->context);
+
+            c->proc = 0;
+            found = 1;
+            release(&p->lock);
+
+            // Salimos del loop for para iniciar un nuevo sorteo desde cero
+            break;
+          }
+        }
+        release(&p->lock);
+      }
+    }
+
     if (found == 0) {
       // nothing to run; stop running on this core until an interrupt.
       asm volatile("wfi");

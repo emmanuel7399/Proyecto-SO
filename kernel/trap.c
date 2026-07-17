@@ -68,12 +68,40 @@ usertrap(void)
     syscall();
   } else if ((which_dev = devintr()) != 0) {
     // ok
-  } else if ((r_scause() == 15 || r_scause() == 13) &&
-             vmfault(p->pagetable, r_stval(), (r_scause() == 13) ? 1 : 0) !=
-               0) {
-    // page fault on lazily-allocated page
+  } else if((which_dev = devintr()) != 0){
+      // ok
+
+  // ---> INICIO DE LA MODIFICACION <---
+  } else if(r_scause() == 13 || r_scause() == 15) {
+    // Obtenemos la direccion virtual que causo el fallo
+    uint64 fault_va = r_stval();
+
+    // Verificamos que la direccion solicitada no exceda el tamaño prometido
+    if (fault_va >= p->sz) {
+      p->killed = 1; // Intento ilegal de acceso a memoria
+    } else {
+      // Alineamos la direccion a los limites de la pagina (4096 bytes)
+      fault_va = PGROUNDDOWN(fault_va);
+
+      // Ahora si, pedimos una pagina fisica real de RAM
+      char *mem = kalloc();
+      if (mem == 0) {
+        p->killed = 1; // Nos quedamos sin RAM en todo el sistema
+      } else {
+        // Llenamos la nueva pagina con ceros por seguridad
+        memset(mem, 0, PGSIZE);
+
+        // Mapeamos la direccion virtual a la nueva RAM fisica
+        if (mappages(p->pagetable, fault_va, PGSIZE, (uint64)mem, PTE_W | PTE_R | PTE_U) != 0) {
+          kfree(mem);
+          p->killed = 1;
+        }
+      }
+    }
+  // ---> FIN DE LA MODIFICACION <---
+
   } else {
-    printk("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+    printk("usertrap(): unexpected scause %ld pid=%d\n", r_scause(), p->pid);
     printk("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
     setkilled(p);
   }

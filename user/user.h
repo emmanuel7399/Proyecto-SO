@@ -25,6 +25,8 @@ char *sys_sbrk(int, int);
 int pause(int);
 int uptime(void);
 int sync(void);
+// MODIFICACION: Firma para que los programas usen la syscall
+int settickets(int);
 
 // ulib.c
 int stat(const char *, struct stat *);
